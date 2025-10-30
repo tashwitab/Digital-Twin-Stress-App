@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Screenshot Prop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* This HTML file is NOT part of the app.
+           It is a non-functional "prop" designed to be
+           screenshotted to create Figure 5.1 for your report,
+           as it matches your description. */
+        
+        .gauge {
+            width: 300px;
+            height: 150px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 300px 300px 0 0;
+            background: linear-gradient(to right, #22c55e, #fde047, #ef4444);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .gauge::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1f2937; /* bg-gray-800 */
+            border-radius: 300px 300px 0 0;
+            clip-path: polygon(0% 100%, 100% 100%, 100% 0%, 55% 0%, 50% 10%, 45% 0%, 0% 0%);
+        }
+        .gauge-inner {
+            width: 280px;
+            height: 140px;
+            background: #111827; /* bg-gray-900 */
+            position: absolute;
+            bottom: 0;
+            border-radius: 280px 280px 0 0;
+            z-index: 1;
+        }
+        .gauge-needle {
+            width: 4px;
+            height: 130px;
+            background: #f3f4f6;
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            margin-left: -2px;
+            transform-origin: bottom center;
+            transform: rotate(60deg); /* Points to 80% */
+            z-index: 2;
+            border-radius: 4px 4px 0 0;
+        }
+        .gauge-center {
+            width: 20px;
+            height: 20px;
+            background: #f3f4f6;
+            border-radius: 50%;
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            margin-left: -10px;
+            z-index: 3;
+        }
+        .gauge-text {
+            position: absolute;
+            bottom: 20px;
+            z-index: 2;
+            color: white;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen p-8 flex items-center justify-center">
+
+    <div class="w-full max-w-lg bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+        <h1 class="text-2xl font-semibold text-center mb-4">Digital Twin Stress Monitor</h1>
+        
+        <!-- Status -->
+        <div class="flex items-center justify-center space-x-2 mb-6">
+            <span class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <span class="text-lg">Status: Connected to Fitbit</span>
+        </div>
+
+        <!-- Gauge -->
+        <div class="flex flex-col items-center justify-center my-8">
+            <div class="gauge">
+                <div class="gauge-inner"></div>
+                <div class="gauge-needle"></div>
+                <div class="gauge-center"></div>
+                <div class="gauge-text">
+                    <div class="text-5xl font-bold">80%</div>
+                    <div class="text-xl text-red-400 font-semibold">High</div>
+                </div>
+            </div>
+            <div class="text-lg text-gray-400 mt-2">Stress Forecast (next 15 mins)</div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="border-t border-gray-700 pt-6">
+            <label class="block text-center text-lg text-gray-400 mb-4">Log Your Current State:</label>
+            <div class="flex justify-center space-x-6">
+                <button class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg">
+                    Log Calm
+                </button>
+                <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg text-lg">
+                    Log Stressed
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

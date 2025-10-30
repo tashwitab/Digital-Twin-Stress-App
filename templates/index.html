@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <title>Digital Twin - Stress Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Glassmorphism Card Style */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1rem; /* 16px */
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Modern Slider Thumb */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #38bdf8; /* light blue */
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            margin-top: -6px; /* Center thumb */
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #38bdf8;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+        }
+
+        /* Modern Slider Track */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            outline: none;
+        }
+        
+        /* Hide/Show utility classes */
+        .hidden {
+            display: none;
+        }
+        
+        /* Gradient Background */
+        body {
+            background: linear-gradient(120deg, #0f172a, #1e293b, #334155);
+        }
+
+        /* NEW: Sidebar Styles */
+        #inputSidebar {
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(-100%);
+        }
+        #inputSidebar.open {
+            transform: translateX(0);
+        }
+        #sidebarOverlay {
+            transition: opacity 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-gray-200 min-h-screen font-sans p-4 md:p-8">
+
+    <!-- Global API URL -->
+    <script>
+        const API_URL = 'http://127.0.0.1:5000';
+        let currentUserId = null; // Store logged-in user ID
+        let currentInputs = {}; // Store current slider values
+        let currentStressLevel = 1; // Default
+    </script>
+
+    <!-- ======== AUTHENTICATION CONTAINER ======== -->
+    <div id="authContainer" class="max-w-md mx-auto">
+        <!-- Login Form -->
+        <div id="loginForm" class="glass-card p-8">
+            <h2 class="text-3xl font-bold text-white text-center mb-6">Login</h2>
+            <form onsubmit="login(event)">
+                <div class="mb-4">
+                    <label for="loginUsername" class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                    <input type="text" id="loginUsername" name="username" class="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-sky-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="loginPassword" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <input type="password" id="loginPassword" name="password" class="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-sky-500" required>
+                </div>
+                <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Login</button>
+            </form>
+            <p id="loginError" class="text-red-400 text-center mt-4 hidden"></p>
+            <p class="text-center text-gray-400 mt-4">
+                No account? <a href="#" onclick="showRegisterForm()" class="text-sky-400 hover:underline">Register here</a>
+            </p>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="glass-card p-8 hidden">
+            <h2 class="text-3xl font-bold text-white text-center mb-6">Register</h2>
+            <form onsubmit="register(event)">
+                <div class="mb-4">
+                    <label for="registerUsername" class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                    <input type="text" id="registerUsername" name="username" class="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-sky-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="registerPassword" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <input type="password" id="registerPassword" name="password" class="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-sky-500" required>
+                </div>
+                <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Register</button>
+            </form>
+            <p id="registerError" class="text-red-400 text-center mt-4 hidden"></p>
+            <p class="text-center text-gray-400 mt-4">
+                Already have an account? <a href="#" onclick="showLoginForm()" class="text-sky-400 hover:underline">Login here</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- ======== NEW: Input Sidebar (Initially Hidden) ======== -->
+    <div id="sidebarOverlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
+    <div id="inputSidebar" class="fixed top-0 left-0 h-full w-full max-w-md bg-slate-800 z-50 p-6 shadow-lg overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-semibold text-white">Update Inputs</h2>
+            <button onclick="closeSidebar()" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+        </div>
+        
+        <!-- Input Parameters Form -->
+        <form id="stressForm">
+            <div class="space-y-4 pr-2">
+                <!-- Sliders will be dynamically injected here -->
+            </div>
+            <button type="button" onclick="analyzeStress()" class="w-full mt-6 bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors">
+                Analyze My Current State
+            </button>
+        </form>
+    </div>
+
+    <!-- ======== MAIN DASHBOARD CONTAINER (Initially Hidden) ======== -->
+    <div id="dashboardContainer" class="hidden">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-3xl md:text-4xl font-bold text-white">Digital Twin: Stress Monitor</h1>
+                <button onclick="openSidebar()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    Update Inputs
+                </button>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="welcomeMessage" class="text-gray-300"></span>
+                <button onclick="logout()" class="text-sm bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">Logout</button>
+            </div>
+        </header>
+
+        <!-- Main Grid (Reorganized to 2 columns) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- ======== Left Column: Vitals & History ======== -->
+            <div class="space-y-6">
+                
+                <!-- Stress Level Card -->
+                <div class="glass-card p-6 text-center">
+                    <h2 class="text-2xl font-semibold text-white mb-4">Current Predicted Stress</h2>
+                    <div id="stressResult" class="text-6xl font-bold text-gray-300 transition-colors">
+                        Medium
+                    </div>
+                    <div id="stressColorBar" class="h-4 w-full rounded-lg mt-4 bg-yellow-500 transition-all"></div>
+                </div>
+
+                <!-- History Card -->
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-semibold text-white mb-4">Stress History (Last 30)</h2>
+                    <div class="h-64 md:h-80">
+                        <canvas id="stressHistoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Interventions Card -->
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-semibold text-white mb-4">Personalized Interventions</h2>
+                    <ul id="interventionsList" class="list-disc list-inside space-y-2 text-gray-300">
+                        <li>Suggestions will appear here...</li>
+                    </ul>
+                </div>
+
+                <!-- Simulation Card -->
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-semibold text-white mb-4">Simulation Environment</h2>
+                    <div class="flex space-x-2">
+                        <select id="simParam" class="w-1/2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none">
+                            <!-- Options injected by JS -->
+                        </select>
+                        <select id="simValue" class="w-1/4 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none">
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                        <button onclick="runSimulation()" class="w-1/4 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-3 rounded-lg transition-colors">Run</button>
+                    </div>
+                    <p id="simResult" class="text-center mt-4 text-gray-300">Run a simulation to see potential outcomes.</p>
+                </div>
+            </div>
+
+            <!-- ======== Right Column: Logs, Goals & Analytics ======== -->
+            <div class="space-y-6">
+                
+                <!-- Habit Goal Progress -->
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-semibold text-white mb-4">Habit Goal Progress</h2>
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="text-gray-300">Your Goal: <strong id="goalHabitName" class="text-sky-400">...</strong></p>
+                        <button onclick="editGoals()" class="text-sm text-sky-400 hover:underline">Edit</button>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-2.5">
+                        <div id="goalProgressBar" class="bg-sky-500 h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p id="goalHabitCount" class="text-right text-gray-400 text-sm mt-1">Logged 0 times</p>
+                </div>
+                
+                <!-- Habit Logger Card -->
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-semibold text-white mb-4">Daily Habit Logger</h2>
+                    <div class="flex space-x-2">
+                        <input type="text" id="habitInput" placeholder="e.g., 'Exercised', 'Slept 8 hours'" class="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <button onclick="logHabit()" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Log</button>
+                    </div>
+                </div>
+
+                <!-- Journal Card -->
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-semibold text-white mb-4">Sentiment Journal</h2>
+                    <textarea id="journalInput" rows="4" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="How are you feeling right now?"></textarea>
+                    <button onclick="saveJournal()" class="w-full mt-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Save Entry</button>
+                    <p id="journalSentiment" class="text-center mt-3 text-gray-400 hidden"></p>
+                </div>
+
+                <!-- Analytics Card -->
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-semibold text-white mb-4">Behavioral Analytics</h2>
+                    <div class="space-y-2">
+                        <p>Cognitive Load: <strong id="cogLoad" class="text-lg text-yellow-400">N/A</strong></p>
+                        <p>Sentiment Trend:</p>
+                        <div id="sentimentTrend" class="text-gray-400 text-sm ml-4">
+                            - Positive: 0<br>
+                            - Neutral: 0<br>
+                            - Negative: 0
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Report Card -->
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-semibold text-white mb-4">Stress Report</h2>
+                    <button onclick="generateReport()" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-colors mb-4">Generate Report</button>
+                    <textarea id="reportOutput" rows="8" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-gray-300" readonly>Your report will appear here...</textarea>
+                </div>
+
+            </div>
+        </div>
+    </div> <!-- End Dashboard Container -->
+
+    <!-- ======== JAVASCRIPT LOGIC ======== -->
+    <script>
+        // --- Slider Definitions ---
+        const sliders = [
+            { id: 'anxiety_level', name: 'Anxiety Level', min: 0, max: 21, default: 10 },
+            { id: 'self_esteem', name: 'Self Esteem', min: 0, max: 30, default: 15 },
+            { id: 'mental_health_history', name: 'Mental Health History', min: 0, max: 1, default: 0 },
+            { id: 'depression', name: 'Depression Score', min: 0, max: 27, default: 13 },
+            { id: 'headache', name: 'Headache Frequency', min: 0, max: 5, default: 2 },
+            { id: 'blood_pressure', name: 'Blood Pressure (1-3)', min: 1, max: 3, default: 2 },
+            { id: 'sleep_quality', name: 'Sleep Quality', min: 0, max: 5, default: 2 },
+            { id: 'breathing_problem', name: 'Breathing Problem', min: 0, max: 5, default: 2 },
+            { id: 'noise_level', name: 'Noise Level', min: 0, max: 5, default: 2 },
+            { id: 'living_conditions', name: 'Living Conditions', min: 0, max: 5, default: 2 },
+            { id: 'safety', name: 'Safety', min: 0, max: 5, default: 2 },
+            { id: 'basic_needs', name: 'Basic Needs', min: 0, max: 5, default: 2 },
+            { id: 'academic_performance', name: 'Academic Performance', min: 0, max: 5, default: 3 },
+            { id: 'study_load', name: 'Study Load', min: 0, max: 5, default: 3 },
+            { id: 'teacher_student_relationship', name: 'Teacher-Student Relationship', min: 0, max: 5, default: 3 },
+            { id: 'future_career_concerns', name: 'Future Career Concerns', min: 0, max: 5, default: 3 },
+            { id: 'social_support', name: 'Social Support', min: 0, max: 5, default: 3 },
+            { id: 'peer_pressure', name: 'Peer Pressure', min: 0, max: 5, default: 3 },
+            { id: 'extracurricular_activities', name: 'Extracurricular Activities', min: 0, max: 5, default: 3 },
+            { id: 'bullying', name: 'Bullying Frequency', min: 0, max: 5, default: 2 }
+        ];
+
+        // --- Chart Instance ---
+        let stressChart;
+
+        // --- DOM Elements ---
+        const authContainer = document.getElementById('authContainer');
+        const dashboardContainer = document.getElementById('dashboardContainer');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginError = document.getElementById('loginError');
+        const registerError = document.getElementById('registerError');
+        const sidebar = document.getElementById('inputSidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        // --- NEW: Sidebar Functions ---
+        function openSidebar() {
+            sidebar.classList.add('open');
+            overlay.classList.remove('hidden');
+            overlay.style.opacity = '1';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.classList.add('hidden'), 300); // Hide after transition
+        }
+
+        // --- Auth Functions ---
+        function showRegisterForm() {
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+            loginError.classList.add('hidden');
+            registerError.classList.add('hidden');
+        }
+
+        function showLoginForm() {
+            registerForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+            loginError.classList.add('hidden');
+            registerError.classList.add('hidden');
+        }
+        
+        async function register(event) {
+            event.preventDefault();
+            const username = event.target.username.value;
+            const password = event.target.password.value;
+            
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Automatically log in the user after registration
+                    currentUserId = data.userId;
+                    showDashboard(username);
+                } else {
+                    registerError.textContent = data.message;
+                    registerError.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Registration Error:', error);
+                registerError.textContent = 'Network error. Please try again.';
+                registerError.classList.remove('hidden');
+            }
+        }
+        
+        async function login(event) {
+            event.preventDefault();
+            const username = event.target.username.value;
+            const password = event.target.password.value;
+            
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUserId = data.userId;
+                    showDashboard(username);
+                } else {
+                    loginError.textContent = data.message;
+                    loginError.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Login Error:', error);
+                loginError.textContent = 'Network error. Please try again.';
+                loginError.classList.remove('hidden');
+            }
+        }
+        
+        function logout() {
+            currentUserId = null;
+            authContainer.classList.remove('hidden');
+            dashboardContainer.classList.add('hidden');
+            document.getElementById('welcomeMessage').textContent = '';
+            
+            // Clear dashboard
+            if (stressChart) {
+                stressChart.destroy();
+            }
+            document.getElementById('reportOutput').value = '';
+            document.getElementById('cogLoad').textContent = 'N/A';
+            document.getElementById('sentimentTrend').innerHTML = '- Positive: 0<br>- Neutral: 0<br>- Negative: 0';
+            
+            showLoginForm(); // Go back to login form
+        }
+
+        function showDashboard(username) {
+            authContainer.classList.add('hidden');
+            dashboardContainer.classList.remove('hidden');
+            document.getElementById('welcomeMessage').textContent = `Welcome, ${username}!`;
+            
+            // Initialize dashboard
+            loadAllData();
+        }
+
+        // --- Data Loading & Dashboard Init ---
+        function loadAllData() {
+            if (!currentUserId) return;
+            
+            // Load all components
+            loadHistory();
+            loadAnalytics();
+            loadGoals();
+            // Get initial prediction and interventions
+            analyzeStress(true); // Pass true for initial load
+        }
+
+        // --- Core Functions ---
+        
+        // Generic fetch helper
+        async function fetchApi(endpoint, options = {}) {
+            // This is the simple auth model. We add the userId to the body.
+            if (!currentUserId) {
+                console.error('No user ID found. Logging out.');
+                logout(); // This is the safety check
+                return; // Stop the request
+            }
+            
+            // Add userId to *all* requests
+            const bodyWithAuth = {
+                ...options.body, // Spread operator to include existing body
+                userId: currentUserId
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    method: options.method || 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bodyWithAuth)
+                });
+
+                if (response.status === 401) {
+                    // This happens if the backend sends 401 (e.g., missing userId)
+                    console.error('Authorization Error (401). Logging out.');
+                    logout();
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+                return await response.json();
+
+            } catch (error) {
+                console.error(`Error fetching ${endpoint}:`, error);
+            }
+        }
+
+
+        function createSliders() {
+            const form = document.getElementById('stressForm').querySelector('.space-y-4');
+            const simSelect = document.getElementById('simParam');
+            
+            sliders.forEach(slider => {
+                // Create slider
+                const div = document.createElement('div');
+                div.className = 'slider-group';
+                div.innerHTML = `
+                    <label for="${slider.id}" class="flex justify-between text-sm font-medium text-gray-300">
+                        <span>${slider.name}</span>
+                        <span id="${slider.id}Value">${slider.default}</span>
+                    </label>
+                    <input type="range" 
+                           id="${slider.id}" 
+                           name="${slider.id}" 
+                           min="${slider.min}" 
+                           max="${slider.max}" 
+                           value="${slider.default}"
+                           oninput="updateSliderValue(this)">
+                `;
+                form.appendChild(div);
+                
+                // Add to simulation dropdown
+                const option = document.createElement('option');
+                option.value = slider.id;
+                option.textContent = slider.name;
+                simSelect.appendChild(option);
+
+                // Store default value
+                currentInputs[slider.id] = slider.default;
+            });
+        }
+        
+        function updateSliderValue(slider) {
+            document.getElementById(`${slider.id}Value`).textContent = slider.value;
+            currentInputs[slider.id] = parseInt(slider.value, 10);
+        }
+
+        async function analyzeStress(isInitialLoad = false) {
+            // On initial load, currentInputs is already set to defaults
+            // On button click, we update currentInputs from the DOM
+            if (!isInitialLoad) { 
+                sliders.forEach(slider => {
+                    currentInputs[slider.id] = parseInt(document.getElementById(slider.id).value, 10);
+                });
+            }
+
+            const data = await fetchApi('/predict', { 
+                body: { inputs: currentInputs } 
+            });
+
+            if (data) {
+                if (data.error) {
+                     console.error("Prediction error:", data.error);
+                     return;
+                }
+                updateStressUI(data.stress_level, data.stress_text);
+                currentStressLevel = data.stress_level;
+                // Get new interventions based on this stress level
+                loadInterventions(data.stress_level);
+
+                // --- BUG FIX HERE ---
+                // Refresh history chart after new prediction
+                loadHistory(); 
+
+                // --- UX Improvement ---
+                if (!isInitialLoad) {
+                    closeSidebar(); // Close panel after analysis
+                }
+            }
+        }
+
+        function updateStressUI(level, text) {
+            const resultDiv = document.getElementById('stressResult');
+            const colorBar = document.getElementById('stressColorBar');
+            
+            resultDiv.textContent = text;
+            if (level === 0) { // Low
+                resultDiv.className = 'text-6xl font-bold text-green-400 transition-colors';
+                colorBar.className = 'h-4 w-full rounded-lg mt-4 bg-green-500 transition-all';
+            } else if (level === 1) { // Medium
+                resultDiv.className = 'text-6xl font-bold text-yellow-400 transition-colors';
+                colorBar.className = 'h-4 w-full rounded-lg mt-4 bg-yellow-500 transition-all';
+            } else { // High
+                resultDiv.className = 'text-6xl font-bold text-red-400 transition-colors';
+                colorBar.className = 'h-4 w-full rounded-lg mt-4 bg-red-500 transition-all';
+            }
+        }
+
+        async function loadHistory() {
+            const data = await fetchApi('/history'); // userId is added by fetchApi
+            if (data && data.history) {
+                renderChart(data.history);
+            }
+        }
+
+        async function loadInterventions(stressLevel) {
+            const data = await fetchApi('/interventions', {
+                body: { stress_level: stressLevel }
+            });
+            
+            if (data && data.suggestions) {
+                const list = document.getElementById('interventionsList');
+                list.innerHTML = '';
+                data.suggestions.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    list.appendChild(li);
+                });
+            }
+        }
+        
+        async function runSimulation() {
+            const param = document.getElementById('simParam').value;
+            const value = parseInt(document.getElementById('simValue').value, 10);
+            
+            const data = await fetchApi('/simulate', {
+                body: { 
+                    inputs: currentInputs,
+                    change: { [param]: value }
+                }
+            });
+
+            if (data && data.simulation_summary) {
+                document.getElementById('simResult').textContent = data.simulation_summary;
+            }
+        }
+
+        async function logHabit() {
+            const habitInput = document.getElementById('habitInput');
+            const habit = habitInput.value;
+            if (!habit) {
+                alert('Please enter a habit.'); // Use custom modal in production
+                return;
+            }
+            
+            const data = await fetchApi('/log_habit', {
+                body: {
+                    habit: habit,
+                    stress_level: currentStressLevel // Log habit with current stress
+                }
+            });
+            
+            if (data && data.success) {
+                habitInput.value = '';
+                // Refresh analytics and goal progress
+                loadAnalytics();
+                loadGoals(); // This will also update progress
+            }
+        }
+        
+        async function loadGoals() {
+            const data = await fetchApi('/goals'); // userId added by fetchApi
+            if (data) {
+                document.getElementById('goalHabitName').textContent = data.habit_goal || 'None';
+                // Now, load the report to get the *count* for this goal
+                loadGoalProgress(data.habit_goal);
+            }
+        }
+        
+        async function editGoals() {
+            const currentGoal = document.getElementById('goalHabitName').textContent || "Exercise";
+            const newHabit = prompt("Enter your new habit goal:", currentGoal);
+            const newStress = prompt("Enter your target stress level (0=Low, 1=Medium):", "1");
+            
+            if (newHabit && newStress) {
+                const data = await fetchApi('/set_goals', {
+                    body: {
+                        habit_goal: newHabit,
+                        stress_goal: parseInt(newStress)
+                    }
+                });
+                
+                if (data && data.success) {
+                    loadGoals(); // Refresh goal display
+                }
+            }
+        }
+
+        async function loadGoalProgress(goalHabitName) {
+            // We fetch the report data, which contains habit counts
+            const data = await fetchApi('/report');
+            if (data && data.report) {
+                const lines = data.report.split('\n');
+                let count = 0;
+                // Find the line for the goal habit
+                const goalLine = lines.find(line => line.includes(`'${goalHabitName}'`));
+                if (goalLine) {
+                    const match = goalLine.match(/Logged (\d+) times/);
+                    if (match) {
+                        count = parseInt(match[1], 10);
+                    }
+                }
+                
+                // Update progress bar (e.g., goal is 10)
+                const goalTarget = 10; // Simple hardcoded goal target
+                const progress = Math.min((count / goalTarget) * 100, 100);
+                document.getElementById('goalProgressBar').style.width = `${progress}%`;
+                document.getElementById('goalHabitCount').textContent = `Logged ${count} times`;
+            }
+        }
+
+        async function loadAnalytics() {
+            const data = await fetchApi('/analytics');
+            if (data) {
+                document.getElementById('cogLoad').textContent = data.cognitive_load || 'N/A';
+                const trendDiv = document.getElementById('sentimentTrend');
+                trendDiv.innerHTML = `
+                    - Positive: ${data.sentiment_trend.Positive || 0}<br>
+                    - Neutral: ${data.sentiment_trend.Neutral || 0}<br>
+                    - Negative: ${data.sentiment_trend.Negative || 0}
+                `;
+            }
+        }
+
+        async function generateReport() {
+            const reportOutput = document.getElementById('reportOutput');
+            reportOutput.value = 'Generating...';
+            const data = await fetchApi('/report');
+            if (data && data.report) {
+                reportOutput.value = data.report;
+            } else {
+                reportOutput.value = 'Error generating report.';
+            }
+        }
+        
+        async function saveJournal() {
+            const journalInput = document.getElementById('journalInput');
+            const text = journalInput.value;
+            if (!text) {
+                alert('Please write something in your journal.'); // Use custom modal in production
+                return;
+            }
+            
+            const data = await fetchApi('/journal', {
+                body: { text: text }
+            });
+            
+            if (data && data.success) {
+                journalInput.value = '';
+                const sentimentMsg = document.getElementById('journalSentiment');
+                sentimentMsg.textContent = `Entry saved. Detected Sentiment: ${data.sentiment}`;
+                sentimentMsg.classList.remove('hidden');
+                // Refresh analytics
+                loadAnalytics();
+            }
+        }
+
+        // --- Chart Rendering ---
+        function renderChart(history) {
+            const ctx = document.getElementById('stressHistoryChart').getContext('2d');
+            
+            if (stressChart) {
+                stressChart.destroy(); // Clear old chart
+            }
+
+            if (!history || history.length === 0) {
+                // Show a message if no data
+                const canvas = document.getElementById('stressHistoryChart');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous drawings
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "#94a3b8";
+                ctx.textAlign = "center";
+                ctx.fillText("Log predictions to see history", canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            const labels = history.map(h => new Date(h.time * 1000).toLocaleTimeString());
+            const data = history.map(h => h.stress);
+            
+            stressChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Stress Level',
+                        data: data,
+                        borderColor: '#38bdf8', // light blue
+                        backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 2,
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: function(value) {
+                                    return { 0: 'Low', 1: 'Medium', 2: 'High' }[value];
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#94a3b8',
+                                maxRotation: 60,
+                                minRotation: 60
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // --- Page Load Initializer ---
+        window.onload = () => {
+            createSliders();
+            // User is NOT logged in on load. They must log in first.
+        };
+
+    </script>
+</body>
+</html>
+

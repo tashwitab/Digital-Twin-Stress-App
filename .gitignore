@@ -1,0 +1,8 @@
+# Python
+*.pyc
+__pycache__/
+.venv/
+venv/
+
+# Local Database
+digital_twin.db
