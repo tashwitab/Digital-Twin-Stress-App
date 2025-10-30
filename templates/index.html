@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digital Twin - Stress Monitor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -73,17 +73,17 @@
 </head>
 <body class="bg-slate-900 text-gray-200 min-h-screen font-sans p-4 md:p-8">
 
-    <!-- Global API URL -->
     <script>
-        const API_URL = 'http://127.0.0.1:5000';
+        // THIS IS THE FIX:
+        // Changed from 'http://127.0.0.1:5000' to ''
+        const API_URL = ''; 
+        
         let currentUserId = null; // Store logged-in user ID
         let currentInputs = {}; // Store current slider values
         let currentStressLevel = 1; // Default
     </script>
 
-    <!-- ======== AUTHENTICATION CONTAINER ======== -->
     <div id="authContainer" class="max-w-md mx-auto">
-        <!-- Login Form -->
         <div id="loginForm" class="glass-card p-8">
             <h2 class="text-3xl font-bold text-white text-center mb-6">Login</h2>
             <form onsubmit="login(event)">
@@ -103,7 +103,6 @@
             </p>
         </div>
 
-        <!-- Register Form -->
         <div id="registerForm" class="glass-card p-8 hidden">
             <h2 class="text-3xl font-bold text-white text-center mb-6">Register</h2>
             <form onsubmit="register(event)">
@@ -124,7 +123,6 @@
         </div>
     </div>
 
-    <!-- ======== NEW: Input Sidebar (Initially Hidden) ======== -->
     <div id="sidebarOverlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
     <div id="inputSidebar" class="fixed top-0 left-0 h-full w-full max-w-md bg-slate-800 z-50 p-6 shadow-lg overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
@@ -132,22 +130,18 @@
             <button onclick="closeSidebar()" class="text-gray-400 hover:text-white text-3xl">&times;</button>
         </div>
         
-        <!-- Input Parameters Form -->
         <form id="stressForm">
             <div class="space-y-4 pr-2">
-                <!-- Sliders will be dynamically injected here -->
-            </div>
+                </div>
             <button type="button" onclick="analyzeStress()" class="w-full mt-6 bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors">
                 Analyze My Current State
             </button>
         </form>
     </div>
 
-    <!-- ======== MAIN DASHBOARD CONTAINER (Initially Hidden) ======== -->
     <div id="dashboardContainer" class="hidden">
         
-        <!-- Header -->
-        <header class="flex justify-between items-center mb-6">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div class="flex items-center space-x-4">
                 <h1 class="text-3xl md:text-4xl font-bold text-white">Digital Twin: Stress Monitor</h1>
                 <button onclick="openSidebar()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
@@ -160,13 +154,10 @@
             </div>
         </header>
 
-        <!-- Main Grid (Reorganized to 2 columns) -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            <!-- ======== Left Column: Vitals & History ======== -->
             <div class="space-y-6">
                 
-                <!-- Stress Level Card -->
                 <div class="glass-card p-6 text-center">
                     <h2 class="text-2xl font-semibold text-white mb-4">Current Predicted Stress</h2>
                     <div id="stressResult" class="text-6xl font-bold text-gray-300 transition-colors">
@@ -175,7 +166,6 @@
                     <div id="stressColorBar" class="h-4 w-full rounded-lg mt-4 bg-yellow-500 transition-all"></div>
                 </div>
 
-                <!-- History Card -->
                 <div class="glass-card p-6">
                     <h2 class="text-2xl font-semibold text-white mb-4">Stress History (Last 30)</h2>
                     <div class="h-64 md:h-80">
@@ -183,7 +173,6 @@
                     </div>
                 </div>
 
-                <!-- Interventions Card -->
                 <div class="glass-card p-6">
                     <h2 class="text-2xl font-semibold text-white mb-4">Personalized Interventions</h2>
                     <ul id="interventionsList" class="list-disc list-inside space-y-2 text-gray-300">
@@ -191,13 +180,11 @@
                     </ul>
                 </div>
 
-                <!-- Simulation Card -->
                 <div class="glass-card p-6">
                     <h2 class="text-2xl font-semibold text-white mb-4">Simulation Environment</h2>
                     <div class="flex space-x-2">
                         <select id="simParam" class="w-1/2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none">
-                            <!-- Options injected by JS -->
-                        </select>
+                            </select>
                         <select id="simValue" class="w-1/4 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none">
                             <option value="0">0</option>
                             <option value="1">1</option>
@@ -212,10 +199,8 @@
                 </div>
             </div>
 
-            <!-- ======== Right Column: Logs, Goals & Analytics ======== -->
             <div class="space-y-6">
                 
-                <!-- Habit Goal Progress -->
                 <div class="glass-card p-6">
                     <h2 class="text-2xl font-semibold text-white mb-4">Habit Goal Progress</h2>
                     <div class="flex justify-between items-center mb-2">
@@ -228,7 +213,6 @@
                     <p id="goalHabitCount" class="text-right text-gray-400 text-sm mt-1">Logged 0 times</p>
                 </div>
                 
-                <!-- Habit Logger Card -->
                 <div class="glass-card p-6">
                     <h2 class="text-2xl font-semibold text-white mb-4">Daily Habit Logger</h2>
                     <div class="flex space-x-2">
@@ -237,7 +221,6 @@
                     </div>
                 </div>
 
-                <!-- Journal Card -->
                 <div class="glass-card p-6">
                     <h2 class="text-2xl font-semibold text-white mb-4">Sentiment Journal</h2>
                     <textarea id="journalInput" rows="4" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="How are you feeling right now?"></textarea>
@@ -245,7 +228,6 @@
                     <p id="journalSentiment" class="text-center mt-3 text-gray-400 hidden"></p>
                 </div>
 
-                <!-- Analytics Card -->
                 <div class="glass-card p-6">
                     <h2 class="text-2xl font-semibold text-white mb-4">Behavioral Analytics</h2>
                     <div class="space-y-2">
@@ -259,7 +241,6 @@
                     </div>
                 </div>
                 
-                <!-- Report Card -->
                 <div class="glass-card p-6">
                     <h2 class="text-2xl font-semibold text-white mb-4">Stress Report</h2>
                     <button onclick="generateReport()" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-colors mb-4">Generate Report</button>
@@ -268,10 +249,7 @@
 
             </div>
         </div>
-    </div> <!-- End Dashboard Container -->
-
-    <!-- ======== JAVASCRIPT LOGIC ======== -->
-    <script>
+    </div> <script>
         // --- Slider Definitions ---
         const sliders = [
             { id: 'anxiety_level', name: 'Anxiety Level', min: 0, max: 21, default: 10 },
@@ -353,6 +331,9 @@
                 if (data.success) {
                     // Automatically log in the user after registration
                     currentUserId = data.userId;
+                    // Store in local storage to persist login
+                    localStorage.setItem('digitalTwinUserId', currentUserId);
+                    localStorage.setItem('digitalTwinUsername', username);
                     showDashboard(username);
                 } else {
                     registerError.textContent = data.message;
@@ -380,6 +361,9 @@
                 
                 if (data.success) {
                     currentUserId = data.userId;
+                    // Store in local storage to persist login
+                    localStorage.setItem('digitalTwinUserId', currentUserId);
+                    localStorage.setItem('digitalTwinUsername', username);
                     showDashboard(username);
                 } else {
                     loginError.textContent = data.message;
@@ -394,6 +378,10 @@
         
         function logout() {
             currentUserId = null;
+            // Clear local storage
+            localStorage.removeItem('digitalTwinUserId');
+            localStorage.removeItem('digitalTwinUsername');
+
             authContainer.classList.remove('hidden');
             dashboardContainer.classList.add('hidden');
             document.getElementById('welcomeMessage').textContent = '';
@@ -401,6 +389,7 @@
             // Clear dashboard
             if (stressChart) {
                 stressChart.destroy();
+                stressChart = null;
             }
             document.getElementById('reportOutput').value = '';
             document.getElementById('cogLoad').textContent = 'N/A';
@@ -467,6 +456,11 @@
 
             } catch (error) {
                 console.error(`Error fetching ${endpoint}:`, error);
+                // Handle network errors for auth
+                if (endpoint === '/register' || endpoint === '/login') {
+                    (endpoint === '/register' ? registerError : loginError).textContent = 'Network error. Please try again.';
+                    (endpoint === '/register' ? registerError : loginError).classList.remove('hidden');
+                }
             }
         }
 
@@ -474,6 +468,8 @@
         function createSliders() {
             const form = document.getElementById('stressForm').querySelector('.space-y-4');
             const simSelect = document.getElementById('simParam');
+            form.innerHTML = ''; // Clear existing sliders
+            simSelect.innerHTML = ''; // Clear existing options
             
             sliders.forEach(slider => {
                 // Create slider
@@ -533,11 +529,10 @@
                 // Get new interventions based on this stress level
                 loadInterventions(data.stress_level);
 
-                // --- BUG FIX HERE ---
                 // Refresh history chart after new prediction
                 loadHistory(); 
 
-                // --- UX Improvement ---
+                // UX Improvement
                 if (!isInitialLoad) {
                     closeSidebar(); // Close panel after analysis
                 }
@@ -687,75 +682,81 @@
             }
         }
 
-        async function generateReport() {
-            const reportOutput = document.getElementById('reportOutput');
-            reportOutput.value = 'Generating...';
-            const data = await fetchApi('/report');
-            if (data && data.report) {
-                reportOutput.value = data.report;
-            } else {
-                reportOutput.value = 'Error generating report.';
-            }
-        }
-        
+        // --- ALL THE MISSING JAVASCRIPT IS BELOW ---
+
         async function saveJournal() {
             const journalInput = document.getElementById('journalInput');
             const text = journalInput.value;
             if (!text) {
-                alert('Please write something in your journal.'); // Use custom modal in production
+                alert('Please enter a journal entry.');
                 return;
             }
-            
+
             const data = await fetchApi('/journal', {
                 body: { text: text }
             });
-            
+
             if (data && data.success) {
+                const sentimentP = document.getElementById('journalSentiment');
+                sentimentP.textContent = `Entry saved. Detected Sentiment: ${data.sentiment}`;
+                sentimentP.classList.remove('hidden');
                 journalInput.value = '';
-                const sentimentMsg = document.getElementById('journalSentiment');
-                sentimentMsg.textContent = `Entry saved. Detected Sentiment: ${data.sentiment}`;
-                sentimentMsg.classList.remove('hidden');
-                // Refresh analytics
-                loadAnalytics();
+                
+                // Update analytics after saving
+                loadAnalytics(); 
+                
+                // Hide message after 3 seconds
+                setTimeout(() => {
+                    sentimentP.classList.add('hidden');
+                }, 3000);
             }
         }
 
-        // --- Chart Rendering ---
+        async function generateReport() {
+            const reportOutput = document.getElementById('reportOutput');
+            reportOutput.value = 'Generating...';
+            
+            const data = await fetchApi('/report');
+            if (data && data.report) {
+                reportOutput.value = data.report;
+            } else {
+                reportOutput.value = 'Could not generate report. Log some habits first.';
+            }
+        }
+
         function renderChart(history) {
             const ctx = document.getElementById('stressHistoryChart').getContext('2d');
             
             if (stressChart) {
-                stressChart.destroy(); // Clear old chart
+                stressChart.destroy(); // Destroy old chart instance
             }
 
-            if (!history || history.length === 0) {
-                // Show a message if no data
-                const canvas = document.getElementById('stressHistoryChart');
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous drawings
-                ctx.font = "16px Arial";
-                ctx.fillStyle = "#94a3b8";
-                ctx.textAlign = "center";
-                ctx.fillText("Log predictions to see history", canvas.width / 2, canvas.height / 2);
-                return;
-            }
-            
-            const labels = history.map(h => new Date(h.time * 1000).toLocaleTimeString());
-            const data = history.map(h => h.stress);
-            
+            // Gradient fill
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(56, 189, 248, 0.5)'); // light-blue-500
+            gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
             stressChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: history.map(item => {
+                        const date = new Date(item.time * 1000);
+                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    }),
                     datasets: [{
                         label: 'Stress Level',
-                        data: data,
-                        borderColor: '#38bdf8', // light blue
-                        backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                        data: history.map(item => item.stress),
+                        borderColor: '#38bdf8', // light-blue-500
                         borderWidth: 2,
-                        fill: true,
                         tension: 0.3,
-                        pointBackgroundColor: '#fff'
+                        fill: {
+                            target: 'origin',
+                            above: gradient,
+                        },
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#38bdf8',
+                        pointHoverRadius: 7,
+                        pointHoverBackgroundColor: '#38bdf8',
                     }]
                 },
                 options: {
@@ -766,9 +767,10 @@
                             beginAtZero: true,
                             max: 2,
                             ticks: {
-                                color: '#94a3b8',
+                                color: '#94a3b8', // slate-400
+                                stepSize: 1,
                                 callback: function(value) {
-                                    return { 0: 'Low', 1: 'Medium', 2: 'High' }[value];
+                                    return ['Low', 'Medium', 'High'][value];
                                 }
                             },
                             grid: {
@@ -777,9 +779,7 @@
                         },
                         x: {
                             ticks: {
-                                color: '#94a3b8',
-                                maxRotation: 60,
-                                minRotation: 60
+                                color: '#94a3b8' // slate-400
                             },
                             grid: {
                                 display: false
@@ -789,19 +789,43 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a', // slate-900
+                            titleColor: '#e2e8f0', // slate-200
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#38bdf8',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    const level = context.parsed.y;
+                                    const text = ['Low', 'Medium', 'High'][level];
+                                    return `Stress: ${text}`;
+                                }
+                            }
                         }
                     }
                 }
             });
         }
-        
-        // --- Page Load Initializer ---
-        window.onload = () => {
+
+        // --- Page Load ---
+        document.addEventListener('DOMContentLoaded', () => {
             createSliders();
-            // User is NOT logged in on load. They must log in first.
-        };
+
+            // Check if user is already logged in from a previous session
+            const storedUserId = localStorage.getItem('digitalTwinUserId');
+            const storedUsername = localStorage.getItem('digitalTwinUsername');
+
+            if (storedUserId && storedUsername) {
+                currentUserId = parseInt(storedUserId, 10);
+                showDashboard(storedUsername);
+            } else {
+                // Not logged in, show auth container
+                authContainer.classList.remove('hidden');
+            }
+        });
 
     </script>
 </body>
 </html>
-
